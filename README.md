@@ -1,6 +1,6 @@
 # Mini-Drop
 
-Mini-Drop 是一个最小可运行的 Linux 性能采集平台，包含 Web、Server、Agent、Analyzer 和 PostgreSQL。默认 Compose 配置执行真实 `perf` CPU 采样，并采集目标进程内存快照，不使用模拟数据。
+Mini-Drop 是一个最小可运行的 Linux 性能采集平台，包含 Web、Server、Agent、Analyzer 和 PostgreSQL。默认 Compose 配置执行真实 `perf` CPU 采样，并采集目标进程内存快照，不使用模拟数据。Analyzer 使用 Brendan Gregg 的 FlameGraph 生成 CPU 火焰图 SVG。
 
 ## Ubuntu 22.04 一键运行
 

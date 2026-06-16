@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from .flamegraph import generate_flamegraph_svg
 from .parser import collapsed_to_tree, top_functions
 
 
@@ -23,11 +24,19 @@ def healthz():
 @app.post("/analyze")
 def analyze(body: AnalyzeRequest):
     try:
+        flamegraph = collapsed_to_tree(body.collapsed_stacks)
+        try:
+            flamegraph_svg = generate_flamegraph_svg(body.collapsed_stacks)
+        except RuntimeError as exc:
+            if "not found" not in str(exc):
+                raise
+            flamegraph_svg = None
         return {
             "task_id": body.task_id,
-            "flamegraph": collapsed_to_tree(body.collapsed_stacks),
+            "flamegraph": flamegraph,
+            "flamegraph_svg": flamegraph_svg,
             "top_functions": top_functions(body.collapsed_stacks),
             "metrics": body.performance_data,
         }
-    except (ValueError, TypeError) as exc:
+    except (RuntimeError, ValueError, TypeError) as exc:
         raise HTTPException(422, str(exc)) from exc

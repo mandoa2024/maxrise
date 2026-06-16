@@ -9,7 +9,6 @@ const api = async (path, options = {}) => {
 };
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let flameChart;
 
 async function load() {
   const [agents, tasks, audits] = await Promise.all([
@@ -49,105 +48,24 @@ function renderMetrics(metrics = {}) {
   document.querySelector("#metrics").innerHTML = items.map(([label, value]) => `<div class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("");
 }
 
-function buildFlameData(root) {
-  const data = [];
-  let maxDepth = 0;
-
+function renderFallbackFlamegraph(root) {
+  const levels = [];
   const walk = (node, start, depth, parentPath) => {
-    const path = parentPath ? `${parentPath} → ${node.name}` : node.name;
-    maxDepth = Math.max(maxDepth, depth);
-    data.push({
-      name: node.name,
-      samples: node.value,
-      path,
-      value: [start, start + node.value, depth]
-    });
-
-    let childStart = start;
-    (node.children || []).forEach(child => {
-      walk(child, childStart, depth + 1, path);
-      childStart += child.value;
-    });
+    levels[depth] ||= [];
+    if (depth > 0) levels[depth].push(node);
+    (node.children || []).forEach(child => walk(child, 0, depth + 1, ""));
   };
-
-  let start = 0;
-  (root.children || []).forEach(child => {
-    walk(child, start, 0, "");
-    start += child.value;
-  });
-  return { data, maxDepth };
+  walk(root, 0, 0, "");
+  return levels.filter(level => level.length).reverse().map(level => `<div class="flame-row">${level.map(node => `<div class="flame-block" style="width:${Math.max(3, node.value / root.value * 100)}%" title="${esc(node.name)}: ${node.value}">${esc(node.name)} (${node.value})</div>`).join("")}</div>`).join("");
 }
 
-function renderFlamegraph(root) {
+function renderFlamegraph(task) {
   const container = document.querySelector("#flamegraph");
-  const { data, maxDepth } = buildFlameData(root);
-  container.style.height = `${Math.max(280, (maxDepth + 1) * 36 + 80)}px`;
-  if (!flameChart) {
-    container.textContent = "";
-    flameChart = echarts.init(container);
-  } else {
-    flameChart.resize();
+  if (task.result.flamegraph_svg) {
+    container.innerHTML = `<iframe title="CPU FlameGraph" sandbox="allow-scripts" srcdoc="${esc(task.result.flamegraph_svg)}"></iframe>`;
+    return;
   }
-
-  flameChart.setOption({
-    animationDurationUpdate: 300,
-    grid: { left: 12, right: 12, top: 20, bottom: 34 },
-    tooltip: {
-      formatter: params => {
-        const item = params.data;
-        const percent = (item.samples / root.value * 100).toFixed(2);
-        return `<strong>${esc(item.name)}</strong><br>${item.samples} samples (${percent}%)<br><span class="tooltip-path">${esc(item.path)}</span>`;
-      }
-    },
-    xAxis: { min: 0, max: root.value, show: false },
-    yAxis: { min: -0.5, max: maxDepth + 0.5, show: false },
-    dataZoom: [
-      { type: "inside", xAxisIndex: 0, filterMode: "none" },
-      { type: "slider", xAxisIndex: 0, filterMode: "none", height: 18, bottom: 4 }
-    ],
-    series: [{
-      type: "custom",
-      coordinateSystem: "cartesian2d",
-      data,
-      encode: { x: [0, 1], y: 2 },
-      renderItem(params, api) {
-        const start = api.coord([api.value(0), api.value(2)]);
-        const end = api.coord([api.value(1), api.value(2)]);
-        const bandHeight = api.size([0, 1])[1];
-        const shape = echarts.graphic.clipRectByRect({
-          x: start[0] + 1,
-          y: start[1] - bandHeight * 0.42,
-          width: Math.max(1, end[0] - start[0] - 2),
-          height: bandHeight * 0.84
-        }, params.coordSys);
-        if (!shape) return null;
-
-        const hue = 22 + (api.value(2) * 7 + params.dataIndex * 3) % 24;
-        const children = [{
-          type: "rect",
-          shape,
-          style: { fill: `hsl(${hue} 92% 68%)`, stroke: "#d97706", lineWidth: 0.7 }
-        }];
-        if (shape.width > 48) {
-          children.push({
-            type: "text",
-            style: {
-              x: shape.x + 6,
-              y: shape.y + shape.height / 2,
-              text: data[params.dataIndex].name,
-              width: shape.width - 12,
-              overflow: "truncate",
-              ellipsis: "…",
-              fill: "#4a2508",
-              font: "12px sans-serif",
-              verticalAlign: "middle"
-            }
-          });
-        }
-        return { type: "group", children };
-      }
-    }]
-  }, true);
+  container.innerHTML = renderFallbackFlamegraph(task.result.flamegraph);
 }
 
 async function showTask(id) {
@@ -156,15 +74,13 @@ async function showTask(id) {
   panel.hidden = false;
   document.querySelector("#timeline").textContent = task.events.map(e => `${e.to_status}: ${e.reason}`).join(" → ");
   if (!task.result) {
-    flameChart?.dispose();
-    flameChart = undefined;
     document.querySelector("#flamegraph").textContent = "任务尚未完成";
     document.querySelector("#metrics").innerHTML = "";
     document.querySelector("#top-functions").innerHTML = "";
     return;
   }
   renderMetrics(task.result.metrics || task.performance_data || {});
-  renderFlamegraph(task.result.flamegraph);
+  renderFlamegraph(task);
   document.querySelector("#top-functions").innerHTML = task.result.top_functions.map(f => `<tr><td>${esc(f.name)}</td><td>${f.samples} samples</td></tr>`).join("");
 }
 
@@ -185,6 +101,5 @@ document.querySelector("#task-form").addEventListener("submit", async event => {
 });
 
 document.querySelector("#refresh").onclick = load;
-window.addEventListener("resize", () => flameChart?.resize());
 load().catch(error => document.querySelector("#message").textContent = error.message);
 setInterval(() => load().catch(() => {}), 3000);

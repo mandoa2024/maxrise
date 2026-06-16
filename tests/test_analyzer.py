@@ -27,7 +27,9 @@ def test_invalid_collapsed_line():
         parse_collapsed_line("missing-count")
 
 
-def test_analyze_includes_uploaded_metrics():
+def test_analyze_includes_uploaded_metrics(monkeypatch):
+    monkeypatch.setattr("analyzer.main.generate_flamegraph_svg", lambda _raw: "<svg></svg>")
+
     result = analyze(AnalyzeRequest(
         task_id="task-1",
         collapsed_stacks=SAMPLES,
@@ -35,3 +37,16 @@ def test_analyze_includes_uploaded_metrics():
     ))
 
     assert result["metrics"]["memory"]["rss_kb"] == 1234
+    assert result["flamegraph_svg"] == "<svg></svg>"
+
+
+def test_analyze_falls_back_when_flamegraph_script_is_missing(monkeypatch):
+    def missing_flamegraph(_raw):
+        raise RuntimeError("flamegraph.pl not found at /opt/FlameGraph/flamegraph.pl")
+
+    monkeypatch.setattr("analyzer.main.generate_flamegraph_svg", missing_flamegraph)
+
+    result = analyze(AnalyzeRequest(task_id="task-1", collapsed_stacks=SAMPLES))
+
+    assert result["flamegraph"]["value"] == 10
+    assert result["flamegraph_svg"] is None
