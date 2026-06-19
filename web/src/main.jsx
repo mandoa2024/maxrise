@@ -2,6 +2,45 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "../styles.css";
 
+// SVG Icons (Heroicons)
+const ActivityIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+  </svg>
+);
+
+const ServerIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+  </svg>
+);
+
+const ChartBarIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const StopIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+  </svg>
+);
+
 const API_BASE = window.location.port === "3000"
   ? `${window.location.protocol}//${window.location.hostname}:8080`
   : "";
@@ -70,28 +109,53 @@ function renderResponsiveSvgDocument(svg) {
 }
 
 function StatusBadge({ value }) {
-  return <span className={`status ${value || ""}`}>{value}</span>;
+  const styles = {
+    ONLINE: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50",
+    DONE: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50",
+    OFFLINE: "bg-red-500/20 text-red-400 border-red-500/50",
+    FAILED: "bg-red-500/20 text-red-400 border-red-500/50",
+    RUNNING: "bg-blue-500/20 text-blue-400 border-blue-500/50",
+    UPLOADING: "bg-blue-500/20 text-blue-400 border-blue-500/50",
+    PENDING: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
+    RECOVERED: "bg-amber-500/20 text-amber-400 border-amber-500/50",
+  };
+  
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${styles[value] || "bg-slate-500/20 text-slate-400 border-slate-500/50"}`}>
+      {value}
+    </span>
+  );
 }
 
 function ModeTabs({ activeMode, onChange }) {
   return (
-    <div className="tabs" role="tablist" aria-label="采样模式">
+    <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm p-1 rounded-lg border border-slate-700" role="tablist" aria-label="采样模式">
       <button
         type="button"
         role="tab"
         aria-selected={activeMode === "task"}
-        className={activeMode === "task" ? "active" : ""}
+        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+          activeMode === "task" 
+            ? "bg-primary text-white shadow-lg shadow-primary/50" 
+            : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+        }`}
         onClick={() => onChange("task")}
       >
+        <ActivityIcon />
         创建 CPU 采样任务
       </button>
       <button
         type="button"
         role="tab"
         aria-selected={activeMode === "continuous"}
-        className={activeMode === "continuous" ? "active" : ""}
+        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+          activeMode === "continuous" 
+            ? "bg-primary text-white shadow-lg shadow-primary/50" 
+            : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+        }`}
         onClick={() => onChange("continuous")}
       >
+        <ClockIcon />
         Continuous Profiling
       </button>
     </div>
@@ -131,54 +195,127 @@ function TaskForm({ agents, onCreated }) {
   }
 
   return (
-    <div className="mode-content">
-      <h2>创建 CPU 采样任务</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Agent
-          <select value={agentId} onChange={(event) => setAgentId(event.target.value)} required>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="p-3 bg-primary/20 rounded-lg border border-primary/50">
+          <ActivityIcon />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-white m-0">创建 CPU 采样任务</h2>
+          <p className="text-sm text-slate-400 m-0">对目标进程进行性能分析</p>
+        </div>
+      </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">Agent</span>
+          <select 
+            value={agentId} 
+            onChange={(event) => setAgentId(event.target.value)} 
+            required
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+          >
             {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>{agent.name} ({agent.status})</option>
+              <option key={agent.id} value={agent.id} className="bg-slate-800">
+                {agent.name} ({agent.status})
+              </option>
             ))}
           </select>
         </label>
-        <label>
-          采集器
-          <select value={collector} onChange={(event) => setCollector(event.target.value)}>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">采集器</span>
+          <select 
+            value={collector} 
+            onChange={(event) => setCollector(event.target.value)}
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+          >
             {COLLECTORS.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
+              <option key={item.value} value={item.value} className="bg-slate-800">
+                {item.label}
+              </option>
             ))}
           </select>
         </label>
-        <label>
-          目标 PID
-          <input type="number" min="1" value={pid} onChange={(event) => setPid(event.target.value)} required />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">目标 PID</span>
+          <input 
+            type="number" 
+            min="1" 
+            value={pid} 
+            onChange={(event) => setPid(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <label>
-          采样时长（秒）
-          <input type="number" min="1" max="300" value={duration} onChange={(event) => setDuration(event.target.value)} required />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">采样时长（秒）</span>
+          <input 
+            type="number" 
+            min="1" 
+            max="300" 
+            value={duration} 
+            onChange={(event) => setDuration(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <label>
-          采样率（Hz）
-          <input type="number" min="1" max="999" value={sampleRate} onChange={(event) => setSampleRate(event.target.value)} required />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">采样率（Hz）</span>
+          <input 
+            type="number" 
+            min="1" 
+            max="999" 
+            value={sampleRate} 
+            onChange={(event) => setSampleRate(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <button type="submit">开始采样</button>
+        <div className="flex items-end">
+          <button 
+            type="submit" 
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-medium hover:shadow-lg hover:shadow-primary/50 transition-all duration-200 cursor-pointer"
+          >
+            <PlayIcon />
+            开始采样
+          </button>
+        </div>
       </form>
-      <p id="message">{message}</p>
+      {message && (
+        <p className={`text-sm ${message.includes('已创建') ? 'text-emerald-400' : 'text-red-400'}`}>
+          {message}
+        </p>
+      )}
     </div>
   );
 }
 
 function AgentCards({ agents }) {
   return (
-    <section className="panel">
-      <h2>Agent</h2>
-      <div className="cards">
-        {agents.length === 0 ? "等待 Agent 注册" : agents.map((agent) => (
-          <div className="card" key={agent.id}>
-            <strong>{agent.name}</strong>
-            <p><StatusBadge value={agent.status} /></p>
-            <small>{agent.hostname}<br />{formatTimestamp(agent.last_heartbeat_at)}</small>
+    <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-emerald-500/20 rounded-lg border border-emerald-500/50">
+          <ServerIcon />
+        </div>
+        <h2 className="text-lg font-semibold text-white m-0">Agent 状态</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {agents.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-slate-400">
+            等待 Agent 注册...
+          </div>
+        ) : agents.map((agent) => (
+          <div 
+            key={agent.id}
+            className="group bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <strong className="text-white font-medium">{agent.name}</strong>
+              <StatusBadge value={agent.status} />
+            </div>
+            <div className="space-y-1 text-sm text-slate-400">
+              <p className="font-mono text-xs">{agent.hostname}</p>
+              <p className="text-xs">{formatTimestamp(agent.last_heartbeat_at)}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -188,48 +325,80 @@ function AgentCards({ agents }) {
 
 function AuditTable({ audits }) {
   return (
-    <section className="panel">
-      <h2>Agent 审计日志</h2>
-      <table>
-        <thead><tr><th>Agent</th><th>事件</th><th>原因</th><th>时间</th></tr></thead>
-        <tbody>
-          {audits.length === 0 ? (
-            <tr><td colSpan="4">暂无审计日志</td></tr>
-          ) : audits.map((audit) => (
-            <tr key={`${audit.agent_id}-${audit.created_at}-${audit.event}`}>
-              <td>{audit.agent_id}</td>
-              <td><StatusBadge value={audit.event} /></td>
-              <td>{audit.reason}</td>
-              <td>{formatTimestamp(audit.created_at)}</td>
+    <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl overflow-x-auto">
+      <h2 className="text-lg font-semibold text-white mb-4">Agent 审计日志</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-700">
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Agent</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">事件</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">原因</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">时间</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {audits.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="text-center py-8 text-slate-400">暂无审计日志</td>
+              </tr>
+            ) : audits.map((audit) => (
+              <tr 
+                key={`${audit.agent_id}-${audit.created_at}-${audit.event}`}
+                className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-150"
+              >
+                <td className="py-3 px-4 text-sm text-slate-300 font-mono">{audit.agent_id}</td>
+                <td className="py-3 px-4 text-sm"><StatusBadge value={audit.event} /></td>
+                <td className="py-3 px-4 text-sm text-slate-400">{audit.reason}</td>
+                <td className="py-3 px-4 text-sm text-slate-400">{formatTimestamp(audit.created_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
 
 function TaskTable({ tasks, onSelect }) {
   return (
-    <section className="panel">
-      <h2>任务</h2>
-      <table>
-        <thead><tr><th>ID</th><th>PID</th><th>采集器</th><th>状态</th><th>原因</th><th>时间</th></tr></thead>
-        <tbody>
-          {tasks.length === 0 ? (
-            <tr><td colSpan="6">暂无任务</td></tr>
-          ) : tasks.map((task) => (
-            <tr key={task.id} data-id={task.id} onClick={() => onSelect(task.id)}>
-              <td>{task.id.slice(0, 8)}</td>
-              <td>{task.pid}</td>
-              <td>{task.collector}</td>
-              <td><StatusBadge value={task.status} /></td>
-              <td>{task.status_reason}</td>
-              <td>{formatTimestamp(task.updated_at)}</td>
+    <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl overflow-x-auto">
+      <h2 className="text-lg font-semibold text-white mb-4">任务列表</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-700">
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">ID</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">PID</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">采集器</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">状态</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">原因</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">时间</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {tasks.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center py-8 text-slate-400">暂无任务</td>
+              </tr>
+            ) : tasks.map((task) => (
+              <tr 
+                key={task.id} 
+                data-id={task.id} 
+                onClick={() => onSelect(task.id)}
+                className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-150 cursor-pointer"
+              >
+                <td className="py-3 px-4 text-sm text-slate-300 font-mono">{task.id.slice(0, 8)}</td>
+                <td className="py-3 px-4 text-sm text-slate-400">{task.pid}</td>
+                <td className="py-3 px-4 text-sm text-slate-400">{task.collector}</td>
+                <td className="py-3 px-4 text-sm"><StatusBadge value={task.status} /></td>
+                <td className="py-3 px-4 text-sm text-slate-400">{task.status_reason}</td>
+                <td className="py-3 px-4 text-sm text-slate-400">{formatTimestamp(task.updated_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -238,21 +407,27 @@ function Metrics({ metrics = {} }) {
   const cpu = metrics.cpu || {};
   const memory = metrics.memory || {};
   const items = [
-    ["CPU Collector", cpu.collector || "N/A"],
-    ["CPU Event", cpu.event || "N/A"],
-    ["Duration", cpu.duration_seconds ? `${cpu.duration_seconds}s` : "N/A"],
-    ["Sample Rate", cpu.sample_rate_hz ? `${cpu.sample_rate_hz} Hz` : "N/A"],
-    ["Stack Lines", cpu.collapsed_stack_lines ?? "N/A"],
-    ["Memory RSS", formatKb(memory.rss_kb)],
-    ["Memory VMS", formatKb(memory.vms_kb)],
-    ["Peak RSS", formatKb(memory.peak_rss_kb)]
+    { label: "CPU Collector", value: cpu.collector || "N/A", icon: "⚡" },
+    { label: "CPU Event", value: cpu.event || "N/A", icon: "📊" },
+    { label: "Duration", value: cpu.duration_seconds ? `${cpu.duration_seconds}s` : "N/A", icon: "⏱️" },
+    { label: "Sample Rate", value: cpu.sample_rate_hz ? `${cpu.sample_rate_hz} Hz` : "N/A", icon: "📈" },
+    { label: "Stack Lines", value: cpu.collapsed_stack_lines ?? "N/A", icon: "📝" },
+    { label: "Memory RSS", value: formatKb(memory.rss_kb), icon: "💾" },
+    { label: "Memory VMS", value: formatKb(memory.vms_kb), icon: "💿" },
+    { label: "Peak RSS", value: formatKb(memory.peak_rss_kb), icon: "🔺" }
   ];
   return (
-    <div className="metric-grid">
-      {items.map(([label, value]) => (
-        <div className="metric" key={label}>
-          <span>{label}</span>
-          <strong>{value}</strong>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {items.map(({ label, value, icon }) => (
+        <div 
+          key={label}
+          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-primary/30 transition-all duration-200"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">{icon}</span>
+            <span className="text-xs text-slate-400">{label}</span>
+          </div>
+          <strong className="text-lg text-white font-semibold font-mono">{value}</strong>
         </div>
       ))}
     </div>
@@ -286,13 +461,18 @@ function FallbackFlamegraph({ root }) {
 function Flamegraph({ result }) {
   if (result.flamegraph_svg) {
     return (
-      <div id="flamegraph">
-        <iframe title="CPU FlameGraph" sandbox="allow-scripts" srcDoc={renderResponsiveSvgDocument(result.flamegraph_svg)} />
+      <div className="w-full min-h-[760px] border border-slate-700 rounded-lg bg-gradient-to-br from-orange-50 to-amber-50 overflow-hidden shadow-inner">
+        <iframe 
+          title="CPU FlameGraph" 
+          sandbox="allow-scripts" 
+          srcDoc={renderResponsiveSvgDocument(result.flamegraph_svg)} 
+          className="block w-full h-[760px] border-0 bg-white"
+        />
       </div>
     );
   }
   return (
-    <div id="flamegraph">
+    <div className="w-full min-h-[760px] border border-slate-700 rounded-lg bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-4 overflow-hidden">
       <FallbackFlamegraph root={result.flamegraph} />
     </div>
   );
@@ -300,34 +480,58 @@ function Flamegraph({ result }) {
 
 function ResultPanel({ task }) {
   if (!task) return null;
-  const timeline = (task.events || []).map((event) => `${event.to_status}: ${event.reason}`).join(" -> ");
+  const timeline = (task.events || []).map((event) => `${event.to_status}: ${event.reason}`).join(" → ");
   if (!task.result) {
     return (
-      <section className="panel">
-        <h2>分析结果</h2>
-        <div id="timeline">{timeline}</div>
-        <h3>CPU 火焰图</h3>
-        <div id="flamegraph">任务尚未完成</div>
+      <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/50">
+            <ChartBarIcon />
+          </div>
+          <h2 className="text-lg font-semibold text-white m-0">分析结果</h2>
+        </div>
+        <div className="mb-6 p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
+          <p className="text-sm text-slate-400 font-mono">{timeline}</p>
+        </div>
+        <h3 className="text-md font-semibold text-white mb-3">CPU 火焰图</h3>
+        <div className="w-full min-h-[400px] border border-slate-700 rounded-lg bg-slate-800/50 flex items-center justify-center">
+          <p className="text-slate-400">任务尚未完成，正在处理中...</p>
+        </div>
       </section>
     );
   }
   const metrics = task.result.metrics || task.performance_data || {};
   return (
-    <section className="panel">
-      <h2>分析结果</h2>
-      <div id="timeline">{timeline}</div>
-      <h3>性能指标</h3>
+    <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/50">
+          <ChartBarIcon />
+        </div>
+        <h2 className="text-lg font-semibold text-white m-0">分析结果</h2>
+      </div>
+      <div className="mb-6 p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
+        <p className="text-sm text-slate-400 font-mono">{timeline}</p>
+      </div>
+      <h3 className="text-md font-semibold text-white mb-3">性能指标</h3>
       <Metrics metrics={metrics} />
-      <h3>CPU 火焰图</h3>
+      <h3 className="text-md font-semibold text-white mt-6 mb-3">CPU 火焰图</h3>
       <Flamegraph result={task.result} />
-      <h3>Top 函数</h3>
-      <table>
-        <tbody>
-          {(task.result.top_functions || []).map((item) => (
-            <tr key={item.name}><td>{item.name}</td><td>{item.samples} samples</td></tr>
-          ))}
-        </tbody>
-      </table>
+      <h3 className="text-md font-semibold text-white mt-6 mb-3">Top 函数</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <tbody>
+            {(task.result.top_functions || []).map((item) => (
+              <tr 
+                key={item.name}
+                className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-150"
+              >
+                <td className="py-3 px-4 text-sm text-orange-400 font-mono">{item.name}</td>
+                <td className="py-3 px-4 text-sm text-slate-400 text-right">{item.samples} samples</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -365,70 +569,152 @@ function ContinuousForm({ agents, onCreated }) {
   }
 
   return (
-    <div className="mode-content">
-      <h2>Continuous Profiling</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Agent
-          <select value={agentId} onChange={(event) => setAgentId(event.target.value)} required>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="p-3 bg-accent/20 rounded-lg border border-accent/50">
+          <ClockIcon />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-white m-0">Continuous Profiling</h2>
+          <p className="text-sm text-slate-400 m-0">持续性能监控和分析</p>
+        </div>
+      </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">Agent</span>
+          <select 
+            value={agentId} 
+            onChange={(event) => setAgentId(event.target.value)} 
+            required
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all duration-200"
+          >
             {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>{agent.name} ({agent.status})</option>
+              <option key={agent.id} value={agent.id} className="bg-slate-800">
+                {agent.name} ({agent.status})
+              </option>
             ))}
           </select>
         </label>
-        <label>
-          采集器
-          <select value={collector} onChange={(event) => setCollector(event.target.value)}>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">采集器</span>
+          <select 
+            value={collector} 
+            onChange={(event) => setCollector(event.target.value)}
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all duration-200"
+          >
             {COLLECTORS.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
+              <option key={item.value} value={item.value} className="bg-slate-800">
+                {item.label}
+              </option>
             ))}
           </select>
         </label>
-        <label>
-          目标 PID
-          <input type="number" min="1" value={pid} onChange={(event) => setPid(event.target.value)} required />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">目标 PID</span>
+          <input 
+            type="number" 
+            min="1" 
+            value={pid} 
+            onChange={(event) => setPid(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <label>
-          低频采样率（Hz）
-          <input type="number" min="1" max="999" value={sampleRate} onChange={(event) => setSampleRate(event.target.value)} required />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">低频采样率（Hz）</span>
+          <input 
+            type="number" 
+            min="1" 
+            max="999" 
+            value={sampleRate} 
+            onChange={(event) => setSampleRate(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <label>
-          切片时长（秒）
-          <input type="number" min="1" max="300" value={segmentSeconds} onChange={(event) => setSegmentSeconds(event.target.value)} required />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">切片时长（秒）</span>
+          <input 
+            type="number" 
+            min="1" 
+            max="300" 
+            value={segmentSeconds} 
+            onChange={(event) => setSegmentSeconds(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <button type="submit">启动</button>
+        <div className="flex items-end">
+          <button 
+            type="submit" 
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-accent to-orange-500 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-accent/50 transition-all duration-200 cursor-pointer"
+          >
+            <PlayIcon />
+            启动
+          </button>
+        </div>
       </form>
-      <p id="message">{message}</p>
+      {message && (
+        <p className={`text-sm ${message.includes('已启动') ? 'text-emerald-400' : 'text-red-400'}`}>
+          {message}
+        </p>
+      )}
     </div>
   );
 }
 
 function SessionTable({ sessions, onSelect, onStop }) {
   return (
-    <section className="panel">
-      <h2>持续采样 Sessions</h2>
-      <table>
-        <thead><tr><th>ID</th><th>PID</th><th>采集器</th><th>状态</th><th>Segments</th><th>最近切片</th><th>操作</th></tr></thead>
-        <tbody>
-          {sessions.length === 0 ? (
-            <tr><td colSpan="7">暂无持续采样 session</td></tr>
-          ) : sessions.map((session) => (
-            <tr key={session.id} data-id={session.id} onClick={() => onSelect(session)}>
-              <td>{session.id.slice(0, 8)}</td>
-              <td>{session.pid}</td>
-              <td>{session.collector}</td>
-              <td><StatusBadge value={session.status} /></td>
-              <td>{session.segment_count ?? 0}</td>
-              <td>{formatTimestamp(session.last_segment_at)}</td>
-              <td>
-                {session.status === "RUNNING" && (
-                  <button type="button" onClick={(event) => { event.stopPropagation(); onStop(session.id); }}>停止</button>
-                )}
-              </td>
+    <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl overflow-x-auto">
+      <h2 className="text-lg font-semibold text-white mb-4">持续采样 Sessions</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-700">
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">ID</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">PID</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">采集器</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">状态</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Segments</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">最近切片</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">操作</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {sessions.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="text-center py-8 text-slate-400">暂无持续采样 session</td>
+              </tr>
+            ) : sessions.map((session) => (
+              <tr 
+                key={session.id} 
+                data-id={session.id} 
+                onClick={() => onSelect(session)}
+                className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-150 cursor-pointer"
+              >
+                <td className="py-3 px-4 text-sm text-slate-300 font-mono">{session.id.slice(0, 8)}</td>
+                <td className="py-3 px-4 text-sm text-slate-400">{session.pid}</td>
+                <td className="py-3 px-4 text-sm text-slate-400">{session.collector}</td>
+                <td className="py-3 px-4 text-sm"><StatusBadge value={session.status} /></td>
+                <td className="py-3 px-4 text-sm text-slate-400">{session.segment_count ?? 0}</td>
+                <td className="py-3 px-4 text-sm text-slate-400">{formatTimestamp(session.last_segment_at)}</td>
+                <td className="py-3 px-4 text-sm">
+                  {session.status === "RUNNING" && (
+                    <button 
+                      type="button" 
+                      onClick={(event) => { event.stopPropagation(); onStop(session.id); }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/50 rounded-md hover:bg-red-500/30 transition-all duration-200 cursor-pointer"
+                    >
+                      <StopIcon />
+                      停止
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -438,18 +724,24 @@ function ProfileWindowMetrics({ result }) {
   const windowData = result.window || metrics.window || {};
   const session = result.session || {};
   const items = [
-    ["Collector", metrics.collector || session.collector || "N/A"],
-    ["PID", metrics.pid || session.pid || "N/A"],
-    ["Window From", formatTimestamp(windowData.from)],
-    ["Window To", formatTimestamp(windowData.to)],
-    ["Segments", windowData.segments ?? "N/A"]
+    { label: "Collector", value: metrics.collector || session.collector || "N/A", icon: "⚡" },
+    { label: "PID", value: metrics.pid || session.pid || "N/A", icon: "🔢" },
+    { label: "Window From", value: formatTimestamp(windowData.from), icon: "⏰" },
+    { label: "Window To", value: formatTimestamp(windowData.to), icon: "⏱️" },
+    { label: "Segments", value: windowData.segments ?? "N/A", icon: "📊" }
   ];
   return (
-    <div className="metric-grid">
-      {items.map(([label, value]) => (
-        <div className="metric" key={label}>
-          <span>{label}</span>
-          <strong>{value}</strong>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {items.map(({ label, value, icon }) => (
+        <div 
+          key={label}
+          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-primary/30 transition-all duration-200"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">{icon}</span>
+            <span className="text-xs text-slate-400">{label}</span>
+          </div>
+          <strong className="text-lg text-white font-semibold font-mono">{value}</strong>
         </div>
       ))}
     </div>
@@ -471,16 +763,24 @@ function CollectorVisualization({ result }) {
 
   return (
     <>
-      <h3>{title}</h3>
+      <h3 className="text-md font-semibold text-white mt-6 mb-3">{title}</h3>
       <Flamegraph result={result} />
-      <h3>{topTitle}</h3>
-      <table className={collector === "py-spy" ? "language-profile" : collector === "ebpf" ? "kernel-profile" : ""}>
-        <tbody>
-          {(result.top_functions || []).map((item) => (
-            <tr key={item.name}><td>{item.name}</td><td>{item.samples} samples</td></tr>
-          ))}
-        </tbody>
-      </table>
+      <h3 className="text-md font-semibold text-white mt-6 mb-3">{topTitle}</h3>
+      <div className="overflow-x-auto">
+        <table className={`w-full ${collector === "py-spy" ? "language-profile" : collector === "ebpf" ? "kernel-profile" : ""}`}>
+          <tbody>
+            {(result.top_functions || []).map((item) => (
+              <tr 
+                key={item.name}
+                className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors duration-150"
+              >
+                <td className="py-3 px-4 text-sm font-mono">{item.name}</td>
+                <td className="py-3 px-4 text-sm text-slate-400 text-right">{item.samples} samples</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
@@ -512,24 +812,58 @@ function ProfileWindowPanel({ session, result, onQuery, message }) {
   }
 
   return (
-    <section className="panel">
-      <h2>时间窗口回溯</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          From
-          <input type="datetime-local" value={fromValue} onChange={(event) => setFromValue(event.target.value)} required />
+    <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-purple-500/20 rounded-lg border border-purple-500/50">
+          <ClockIcon />
+        </div>
+        <h2 className="text-lg font-semibold text-white m-0">时间窗口回溯</h2>
+      </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">From</span>
+          <input 
+            type="datetime-local" 
+            value={fromValue} 
+            onChange={(event) => setFromValue(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <label>
-          To
-          <input type="datetime-local" value={toValue} onChange={(event) => setToValue(event.target.value)} required />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-300">To</span>
+          <input 
+            type="datetime-local" 
+            value={toValue} 
+            onChange={(event) => setToValue(event.target.value)} 
+            required 
+            className="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+          />
         </label>
-        <button type="submit">查询窗口</button>
-        <button type="button" onClick={handleLastFiveMinutes}>最近 5 分钟</button>
+        <div className="flex items-end gap-2">
+          <button 
+            type="submit" 
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-purple-500/50 transition-all duration-200 cursor-pointer"
+          >
+            查询窗口
+          </button>
+          <button 
+            type="button" 
+            onClick={handleLastFiveMinutes}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700/50 text-slate-300 border border-slate-600 rounded-lg font-medium hover:bg-slate-600/50 transition-all duration-200 cursor-pointer"
+          >
+            最近 5 分钟
+          </button>
+        </div>
       </form>
-      {message && <p id="message">{message}</p>}
+      {message && (
+        <p className={`text-sm mb-4 ${message.includes('成功') ? 'text-emerald-400' : 'text-red-400'}`}>
+          {message}
+        </p>
+      )}
       {result && (
         <>
-          <h3>窗口指标</h3>
+          <h3 className="text-md font-semibold text-white mb-3">窗口指标</h3>
           <ProfileWindowMetrics result={result} />
           <CollectorVisualization result={result} />
         </>
@@ -619,19 +953,35 @@ function App() {
 
   return (
     <>
-      <nav className="navbar">
-        <div className="brand"><strong>Mini-Drop</strong><span>性能采集与分析</span></div>
-        <ModeTabs activeMode={activeMode} onChange={setActiveMode} />
+      <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50 shadow-lg">
+        <div className="max-w-[1600px] mx-auto px-6 py-4">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-primary to-secondary rounded-lg">
+                <ActivityIcon />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white m-0">Mini-Drop</h1>
+                <p className="text-sm text-slate-400 m-0">性能采集与分析平台</p>
+              </div>
+            </div>
+            <ModeTabs activeMode={activeMode} onChange={setActiveMode} />
+          </div>
+        </div>
       </nav>
-      <main>
-        <section className="panel mode-panel">
+      <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+        <section className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-xl">
           {activeMode === "task" ? (
             <TaskForm agents={agents} onCreated={load} />
           ) : (
             <ContinuousForm agents={agents} onCreated={load} />
           )}
         </section>
-        {error && <p id="message">{error}</p>}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
         <AgentCards agents={agents} />
         <SessionTable sessions={sessions} onSelect={handleSelectSession} onStop={handleStopSession} />
         <ProfileWindowPanel session={selectedSession} result={profileWindowResult} onQuery={queryProfileWindow} message={profileMessage} />
