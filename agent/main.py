@@ -108,14 +108,17 @@ async def execute_profile_session(client: httpx.AsyncClient, session: dict) -> N
 
 async def profile_session_loop(client: httpx.AsyncClient) -> None:
     while True:
+        active_sessions = []
         try:
             response = await client.get(f"{SERVER_URL}/api/v1/agent/{AGENT_ID}/profile-sessions")
             response.raise_for_status()
-            for session in response.json():
+            active_sessions = response.json()
+            for session in active_sessions:
                 await execute_profile_session(client, session)
         except Exception as exc:
             log.error(json.dumps({"event": "profile_session_poll_failed", "error": str(exc)}))
-        await asyncio.sleep(POLL_SECONDS)
+        if not active_sessions:
+            await asyncio.sleep(POLL_SECONDS)
 
 
 async def main() -> None:

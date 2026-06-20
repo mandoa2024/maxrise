@@ -34,6 +34,93 @@ def serialize(row):
     }
 
 
+def build_window_performance_data(session, rows, from_at, to_at):
+    segment_metrics = [row.get("performance_data") or {} for row in rows]
+    cpu_metrics = [metrics.get("cpu") or {} for metrics in segment_metrics]
+    memory_metrics = [metrics.get("memory") or {} for metrics in segment_metrics]
+
+    def first_value(items, key, default=None):
+        return next(
+            (item[key] for item in items if item.get(key) is not None),
+            default,
+        )
+
+    def latest_value(items, key):
+        return next(
+            (item[key] for item in reversed(items) if item.get(key) is not None),
+            None,
+        )
+
+    window_duration = (to_at - from_at).total_seconds()
+    covered_intervals = []
+    for row in rows:
+        start_at = max(row["start_at"], from_at)
+        end_at = min(row["end_at"], to_at)
+        if start_at < end_at:
+            if covered_intervals and start_at <= covered_intervals[-1][1]:
+                covered_intervals[-1][1] = max(
+                    covered_intervals[-1][1], end_at
+                )
+            else:
+                covered_intervals.append([start_at, end_at])
+    sampled_duration = sum(
+        (end_at - start_at).total_seconds()
+        for start_at, end_at in covered_intervals
+    )
+    stack_lines = [
+        item["collapsed_stack_lines"]
+        for item in cpu_metrics
+        if isinstance(item.get("collapsed_stack_lines"), int)
+    ]
+    peak_values = [
+        item["peak_rss_kb"]
+        for item in memory_metrics
+        if isinstance(item.get("peak_rss_kb"), (int, float))
+    ]
+
+    cpu = {
+        "collector": first_value(cpu_metrics, "collector", session["collector"]),
+        "event": first_value(cpu_metrics, "event"),
+        "duration_seconds": window_duration,
+        "sampled_duration_seconds": sampled_duration,
+        "coverage_percent": (
+            round(sampled_duration / window_duration * 100, 1)
+            if window_duration > 0
+            else 0
+        ),
+        "sample_rate_hz": first_value(cpu_metrics, "sample_rate_hz", session["sample_rate"]),
+        "collapsed_stack_lines": sum(stack_lines) if stack_lines else None,
+    }
+    if session["collector"] == "ebpf":
+        cpu["ebpf_probes"] = first_value(
+            cpu_metrics,
+            "ebpf_probes",
+            session.get("ebpf_probes") or ["vfs_read"],
+        )
+        cpu["probes"] = first_value(cpu_metrics, "probes", [])
+
+    return {
+        "collector": session["collector"],
+        "pid": session["pid"],
+        "ebpf_probes": session.get("ebpf_probes") or ["vfs_read"],
+        "cpu": cpu,
+        "memory": {
+            "rss_kb": latest_value(memory_metrics, "rss_kb"),
+            "vms_kb": latest_value(memory_metrics, "vms_kb"),
+            "peak_rss_kb": max(peak_values) if peak_values else None,
+        },
+        "window": {
+            "from": from_at.isoformat(),
+            "to": to_at.isoformat(),
+            "duration_seconds": window_duration,
+            "sampled_duration_seconds": sampled_duration,
+            "coverage_percent": cpu["coverage_percent"],
+            "segments": len(rows),
+        },
+        "segments": [serialize(row) for row in rows],
+    }
+
+
 async def offline_monitor() -> None:
     while True:
         try:
@@ -288,17 +375,9 @@ async def analyze_profile_window(
         raise HTTPException(404, "no profile segments in requested window")
 
     raw_data = "\n".join(row["raw_data"] for row in rows if row["raw_data"].strip())
-    performance_data = {
-        "collector": session["collector"],
-        "pid": session["pid"],
-        "ebpf_probes": session.get("ebpf_probes") or ["vfs_read"],
-        "window": {
-            "from": from_at.isoformat(),
-            "to": to_at.isoformat(),
-            "segments": len(rows),
-        },
-        "segments": [serialize(row) for row in rows],
-    }
+    performance_data = build_window_performance_data(
+        session, rows, from_at, to_at
+    )
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             analysis = await client.post(
