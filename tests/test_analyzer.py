@@ -3,6 +3,8 @@ import pytest
 from analyzer.parser import (
     collapsed_to_tree,
     parse_collapsed_line,
+    compare_profile_summaries,
+    profile_summary,
     split_ebpf_sources,
     top_functions,
 )
@@ -93,3 +95,46 @@ def test_analyze_returns_separate_ebpf_sources(monkeypatch):
     assert result["ebpf_sources"]["kprobe:vfs_read"]["top_functions"] == [
         {"name": "vfs_read", "samples": 3}
     ]
+
+
+def test_profile_summary_tracks_self_and_inclusive_samples():
+    summary = profile_summary(SAMPLES)
+    functions = {
+        (item["source"], item["name"]): item
+        for item in summary["functions"]
+    }
+
+    assert summary["total_samples"] == 10
+    assert functions[("cpu", "api")]["self_samples"] == 0
+    assert functions[("cpu", "api")]["total_samples"] == 8
+    assert functions[("cpu", "parse")]["self_percent"] == 50
+    assert summary["stacks"][0]["stack_id"]
+
+
+def test_compare_profile_summaries_returns_verifiable_evidence():
+    baseline = profile_summary(
+        "main;handle_request;parse_payload 10\n"
+        "main;handle_request;query_database 40"
+    )
+    target = profile_summary(
+        "main;handle_request;parse_payload 50\n"
+        "main;handle_request;query_database 40"
+    )
+
+    result = compare_profile_summaries(
+        target,
+        baseline,
+        {"memory": {"rss_kb": 200}},
+        {"memory": {"rss_kb": 100}},
+    )
+
+    parse_delta = next(
+        item
+        for item in result["function_deltas"]
+        if item["function"] == "parse_payload"
+    )
+    assert parse_delta["baseline_self_percent"] == 20
+    assert parse_delta["target_self_percent"] == pytest.approx(55.556)
+    assert parse_delta["delta_pp"] == pytest.approx(35.556)
+    assert parse_delta["evidence_id"].startswith("ev-function-")
+    assert result["metric_deltas"][0]["ratio"] == 2

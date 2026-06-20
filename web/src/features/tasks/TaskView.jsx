@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import EbpfProbeSelector from "../../components/EbpfProbeSelector.jsx";
+import AttributionPanel from "../../components/AttributionPanel.jsx";
 import { ActivityIcon, PlayIcon } from "../../components/Icons.jsx";
 import ProfileVisualization from "../../components/ProfileVisualization.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -120,12 +121,44 @@ function TaskTable({ tasks, onSelect }) {
 }
 
 function ResultPanel({ task }) {
+  const [config, setConfig] = useState(null);
+  const [attribution, setAttribution] = useState(task?.attribution || null);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    setAttribution(task?.attribution || null);
+    api("/api/v1/attribution/config").then(setConfig).catch(() => {});
+  }, [task?.id, task?.attribution?.id]);
+
   if (!task) return null;
+
+  async function runAttribution() {
+    setRunning(true);
+    try {
+      setAttribution(
+        await api(`/api/v1/tasks/${task.id}/attribution`, {
+          method: "POST",
+        }),
+      );
+    } finally {
+      setRunning(false);
+    }
+  }
+
   return (
     <section className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-6 shadow-xl">
       <h2 className="mb-4 text-lg font-semibold text-white">分析结果</h2>
       {task.result ? (
-        <ProfileVisualization result={task.result} collector={task.collector} />
+        <>
+          <ProfileVisualization result={task.result} collector={task.collector} />
+          <AttributionPanel
+            attribution={attribution}
+            config={config}
+            onRun={runAttribution}
+            running={running}
+            showManual
+          />
+        </>
       ) : (
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/50 text-slate-400">
           任务尚未完成，正在处理中...

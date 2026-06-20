@@ -161,6 +161,48 @@ python3 -m pip install -r requirements-dev.txt
 python3 -m pytest -q
 ```
 
+## 智能归因
+
+系统会在以下时机自动检查性能回归：
+
+- 持续采样上传新 segment 后，使用此前 3–5 个 segment 作为 baseline。
+- 一次性任务完成后，使用相同 Agent、PID 和采集器最近一次成功任务作为 baseline。
+
+当函数 self CPU 或完整调用路径占比增加至少 12 个百分点，或 RSS/Peak RSS
+达到 baseline 的 1.3 倍时，Server 会创建归因任务。确定性代码负责差分和
+证据，LLM 只能调用预定义的只读工具，最终报告引用的每个 `evidence_id`
+都会由 Server 校验。
+
+项目根目录已提供 `.env`。只需填写：
+
+```env
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your-deepseek-key
+DEEPSEEK_MODEL=deepseek-v4-pro
+```
+
+然后重新构建并启动 Server：
+
+```bash
+docker compose up -d --build server web
+```
+
+未填写 API Key 时功能仍然工作，但只生成确定性差分报告，不调用 LLM。可在
+`.env` 中调整：
+
+```env
+LLM_PROVIDER=deepseek
+DEEPSEEK_MODEL=deepseek-v4-pro
+ATTRIBUTION_CPU_DELTA_PP=12
+ATTRIBUTION_MEMORY_RATIO=1.3
+ATTRIBUTION_MIN_BASELINE_SEGMENTS=3
+ATTRIBUTION_BASELINE_SEGMENTS=5
+```
+
+也可以将 `LLM_PROVIDER` 改为 `openai` 并配置 `OPENAI_API_KEY` 和
+`OPENAI_MODEL=gpt-5.5`。API Key 只会传入 Server 容器，不会返回给浏览器、
+Agent 或 Analyzer。
+
 ## 当前边界
 
 - 当前原始折叠栈和分析结果直接存 PostgreSQL，下一阶段应迁移至 MinIO。

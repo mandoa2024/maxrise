@@ -7,6 +7,7 @@ import React, {
 } from "react";
 
 import EbpfProbeSelector from "../../components/EbpfProbeSelector.jsx";
+import AttributionPanel from "../../components/AttributionPanel.jsx";
 import { ClockIcon, PlayIcon, StopIcon } from "../../components/Icons.jsx";
 import ProfileVisualization from "../../components/ProfileVisualization.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -162,6 +163,8 @@ function WindowPanel({ session }) {
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attributions, setAttributions] = useState([]);
+  const [attributionConfig, setAttributionConfig] = useState(null);
   const [now, setNow] = useState(Date.now());
   const bounds = useMemo(
     () =>
@@ -188,18 +191,38 @@ function WindowPanel({ session }) {
       }
     }
 
+    async function loadAttributions() {
+      if (!session) return;
+      try {
+        const [runs, config] = await Promise.all([
+          api(`/api/v1/profile-sessions/${session.id}/attributions`),
+          api("/api/v1/attribution/config"),
+        ]);
+        if (!cancelled) {
+          setAttributions(runs);
+          setAttributionConfig(config);
+        }
+      } catch {
+        // Profiling remains usable if attribution is unavailable.
+      }
+    }
+
     setSegments([]);
     setSegmentsSessionId(null);
     setWindowStart(null);
     setResult(null);
     setMessage("");
+    setAttributions([]);
     setNow(Date.now());
     loadSegments();
+    loadAttributions();
     const timer = window.setInterval(loadSegments, 3000);
+    const attributionTimer = window.setInterval(loadAttributions, 5000);
     const clock = window.setInterval(() => setNow(Date.now()), 1000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      window.clearInterval(attributionTimer);
       window.clearInterval(clock);
     };
   }, [session?.id]);
@@ -413,6 +436,10 @@ function WindowPanel({ session }) {
 
       {message && <p className="mt-4 text-sm text-red-400">{message}</p>}
       {result && <div className="mt-6"><ProfileVisualization result={result} collector={session.collector} /></div>}
+      <AttributionPanel
+        attribution={attributions[0] || null}
+        config={attributionConfig}
+      />
     </section>
   );
 }

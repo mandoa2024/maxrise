@@ -10,6 +10,14 @@ import httpx
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from .attribution import (
+    attribution_config,
+    evaluate_segment,
+    evaluate_task,
+    latest_run,
+    list_runs_for_session,
+    schedule_attribution,
+)
 from .db import close_pool, connection, open_pool, transition_task
 from .models import (
     Heartbeat,
@@ -165,6 +173,11 @@ app.add_middleware(
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
+
+
+@app.get("/api/v1/attribution/config")
+def get_attribution_config():
+    return attribution_config()
 
 
 @app.post("/api/v1/agents/heartbeat")
@@ -408,7 +421,65 @@ def get_task(task_id: str):
         ).fetchall()
     data = serialize(task)
     data["events"] = [serialize(event) for event in events]
+    data["attribution"] = latest_run("TASK", task_id)
     return data
+
+
+@app.get("/api/v1/tasks/{task_id}/attribution")
+def get_task_attribution(task_id: str):
+    with connection() as conn, conn.cursor() as cur:
+        task = cur.execute(
+            "SELECT id FROM tasks WHERE id = %s", (task_id,)
+        ).fetchone()
+    if task is None:
+        raise HTTPException(404, "task not found")
+    return latest_run("TASK", task_id)
+
+
+@app.post("/api/v1/tasks/{task_id}/attribution")
+async def run_task_attribution(task_id: str):
+    try:
+        result = await evaluate_task(
+            task_id, trigger="MANUAL", force=True
+        )
+        return result
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except Exception as exc:
+        log.exception(
+            '{"event":"manual_task_attribution_failed","task_id":"%s"}',
+            task_id,
+        )
+        raise HTTPException(502, "attribution failed") from exc
+
+
+@app.get("/api/v1/profile-sessions/{session_id}/attributions")
+def get_session_attributions(session_id: str):
+    with connection() as conn, conn.cursor() as cur:
+        session = cur.execute(
+            "SELECT id FROM profiling_sessions WHERE id = %s",
+            (session_id,),
+        ).fetchone()
+    if session is None:
+        raise HTTPException(404, "profile session not found")
+    return list_runs_for_session(session_id)
+
+
+@app.post("/api/v1/profile-segments/{segment_id}/attribution")
+async def run_segment_attribution(segment_id: str):
+    try:
+        return await evaluate_segment(
+            segment_id, trigger="MANUAL", force=True
+        )
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except Exception as exc:
+        log.exception(
+            '{"event":"manual_segment_attribution_failed",'
+            '"segment_id":"%s"}',
+            segment_id,
+        )
+        raise HTTPException(502, "attribution failed") from exc
 
 
 @app.get("/api/v1/agent/{agent_id}/profile-sessions")
@@ -485,6 +556,7 @@ async def upload_task(task_id: str, body: TaskUpload):
         with connection() as conn:
             task = transition_task(conn, task_id, "DONE", "analysis completed", analysis.json())
             conn.commit()
+        schedule_attribution(evaluate_task(task_id))
         return serialize(task)
     except (ValueError, LookupError) as exc:
         raise HTTPException(409, str(exc)) from exc
@@ -500,7 +572,7 @@ async def upload_task(task_id: str, body: TaskUpload):
 
 
 @app.post("/api/v1/agent/profile-sessions/{session_id}/segments", status_code=201)
-def upload_profile_segment(session_id: str, body: ProfileSegmentUpload):
+async def upload_profile_segment(session_id: str, body: ProfileSegmentUpload):
     if body.start_at >= body.end_at:
         raise HTTPException(422, "segment start_at must be earlier than end_at")
     segment_id = str(uuid.uuid4())
@@ -545,6 +617,7 @@ def upload_profile_segment(session_id: str, body: ProfileSegmentUpload):
             segment = cur.execute(
                 "SELECT * FROM profile_segments WHERE id = %s", (segment_id,)
             ).fetchone()
+        schedule_attribution(evaluate_segment(segment_id))
         return serialize(segment)
     except LookupError as exc:
         raise HTTPException(404, str(exc)) from exc

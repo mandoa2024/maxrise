@@ -28,6 +28,55 @@ def open_pool() -> None:
                 NOT NULL DEFAULT '["vfs_read"]'::jsonb
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS attribution_runs (
+                id UUID PRIMARY KEY,
+                target_type TEXT NOT NULL CHECK (
+                    target_type IN ('TASK', 'SEGMENT')
+                ),
+                target_id UUID NOT NULL,
+                session_id UUID REFERENCES profiling_sessions(id)
+                    ON DELETE CASCADE,
+                baseline_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+                trigger TEXT NOT NULL CHECK (
+                    trigger IN ('AUTO', 'MANUAL')
+                ),
+                status TEXT NOT NULL CHECK (
+                    status IN (
+                        'RUNNING', 'COMPLETED', 'FAILED',
+                        'INSUFFICIENT_DATA'
+                    )
+                ),
+                mode TEXT NOT NULL CHECK (
+                    mode IN ('DETERMINISTIC', 'LLM')
+                ),
+                model TEXT,
+                anomaly JSONB NOT NULL DEFAULT '{}'::jsonb,
+                comparison JSONB NOT NULL DEFAULT '{}'::jsonb,
+                report JSONB,
+                tool_trace JSONB NOT NULL DEFAULT '[]'::jsonb,
+                error TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                completed_at TIMESTAMPTZ,
+                UNIQUE (target_type, target_id, trigger)
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_attribution_runs_session_created
+                ON attribution_runs(session_id, created_at DESC)
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_attribution_runs_target
+                ON attribution_runs(
+                    target_type, target_id, created_at DESC
+                )
+            """
+        )
         conn.commit()
 
 
